@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { sendOrderConfirmationEmail } from './email';
 
 dotenv.config();
 
@@ -263,6 +264,35 @@ app.post('/api/orders', async (req, res) => {
     });
 
     res.status(201).json(order);
+
+    // ── Send order confirmation email (non-blocking) ───────────────────────
+    if (contactEmail) {
+      // Fetch product titles and prices for the email
+      const productIds = items.map((i: any) => i.productId);
+      const products = await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, title: true, price: true }
+      });
+      const emailItems = items.map((i: any) => {
+        const product = products.find((p: any) => p.id === i.productId);
+        return {
+          title: product?.title || `Product #${i.productId}`,
+          quantity: i.quantity,
+          price: product?.price || 0,
+        };
+      });
+      sendOrderConfirmationEmail({
+        to: contactEmail,
+        customerName: customerName || 'Valued Customer',
+        orderId: order.id,
+        items: emailItems,
+        totalAmount,
+        shippingAddress,
+        paymentMethod: paymentMethod || 'card',
+        couponCode,
+        discountAmt,
+      }).catch((err) => console.error('[Email] Failed to send:', err));
+    }
   } catch (error) {
     console.error('Error creating order:', error);
     res.status(500).json({ error: 'Internal server error' });
