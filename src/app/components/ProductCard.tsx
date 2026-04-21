@@ -14,6 +14,7 @@ export interface Product {
   images?: { id: number; url: string }[];
   badge?: string;
   description?: string;
+  stockCount?: number;
 }
 
 interface ProductCardProps {
@@ -64,6 +65,11 @@ export function ProductCard({ product, onAddToCart, onQuickView }: ProductCardPr
           {discount > 0 && (
             <div className="bg-red-600/95 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded shadow-sm uppercase font-bold tracking-wider w-fit">
               -{discount}% OFF
+            </div>
+          )}
+          {product.stockCount !== undefined && product.stockCount > 0 && product.stockCount <= 10 && (
+            <div className="bg-amber-500/95 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded shadow-sm font-bold tracking-wider w-fit animate-pulse">
+              Only {product.stockCount} left!
             </div>
           )}
         </div>

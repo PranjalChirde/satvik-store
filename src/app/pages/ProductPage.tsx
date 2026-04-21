@@ -181,6 +181,16 @@ export function ProductPage({ onAddToCart }: ProductPageProps) {
             )}
           </div>
 
+          {product.stockCount !== undefined && product.stockCount > 0 && product.stockCount <= 10 && (
+            <div className="mb-4 inline-block w-fit bg-amber-100 text-amber-800 border border-amber-200 text-sm px-3 py-1.5 rounded-full font-medium flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+              </span>
+              Hurry! Only {product.stockCount} items left in stock.
+            </div>
+          )}
+
           <p className="text-gray-600 text-sm leading-relaxed mb-6">
             {product.description ||
               'A premium, spiritually authentic product meticulously sourced and crafted for your daily rituals. This item brings calm and sacred tradition into any environment it adorns.'}
