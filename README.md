@@ -1,8 +1,6 @@
 
-  # E-commerce Clone Design
-
-  This is a code bundle for E-commerce Clone Design. The original project is available at https://www.figma.com/design/UCZ96deSillmWZ4ptEIXr7/E-commerce-Clone-Design.
-
+  # E-commerce  Design
+  
   ## Running the code
 
   Run `npm i` to install the dependencies.
