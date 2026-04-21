@@ -47,10 +47,24 @@ const authenticateToken = (req: express.Request, res: express.Response, next: ex
     next();
   });
 };
+
+// Admin-only Middleware
+const authenticateAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Authentication required' });
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) return res.status(403).json({ error: 'Invalid token' });
+    if (user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+    (req as any).user = user;
+    next();
+  });
+};
 app.use(express.json());
 
 // Add a new product (Admin)
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', authenticateAdmin, async (req, res) => {
   try {
     const { title, price, originalPrice, category, badge, description, image, additionalImages } = req.body;
     if (!title || !price || !category || !image) {
@@ -77,7 +91,7 @@ app.post('/api/products', async (req, res) => {
 });
 
 // Upload image (Admin)
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', authenticateAdmin, upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -168,7 +182,7 @@ app.get('/api/coupons', async (req, res) => {
   }
 });
 
-app.post('/api/coupons', async (req, res) => {
+app.post('/api/coupons', authenticateAdmin, async (req, res) => {
   try {
     const { code, discountPct } = req.body;
     if (!code || !discountPct) return res.status(400).json({ error: 'Code and discountPct are required' });
@@ -181,7 +195,7 @@ app.post('/api/coupons', async (req, res) => {
   }
 });
 
-app.delete('/api/coupons/:id', async (req, res) => {
+app.delete('/api/coupons/:id', authenticateAdmin, async (req, res) => {
   try {
     await prisma.coupon.delete({ where: { id: parseInt(req.params.id, 10) } });
     res.status(204).send();
@@ -316,7 +330,7 @@ app.get('/api/orders', async (req, res) => {
 });
 
 // Update order status (Admin)
-app.patch('/api/orders/:id/status', async (req, res) => {
+app.patch('/api/orders/:id/status', authenticateAdmin, async (req, res) => {
   try {
     const orderId = parseInt(req.params.id, 10);
     const { status } = req.body;
@@ -335,7 +349,7 @@ app.patch('/api/orders/:id/status', async (req, res) => {
 });
 
 // Update an existing product (Admin)
-app.patch('/api/products/:id', async (req, res) => {
+app.patch('/api/products/:id', authenticateAdmin, async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
     if (isNaN(productId)) return res.status(400).json({ error: 'Invalid product ID' });
@@ -373,7 +387,7 @@ app.patch('/api/products/:id', async (req, res) => {
 });
 
 // Delete a product (Admin)
-app.delete('/api/products/:id', async (req, res) => {
+app.delete('/api/products/:id', authenticateAdmin, async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
     if (isNaN(productId)) return res.status(400).json({ error: 'Invalid product ID' });
@@ -447,8 +461,8 @@ app.post('/api/auth/register', async (req, res) => {
     const user = await prisma.user.create({
       data: { name, email, passwordHash }
     });
-    const token = jwt.sign({ userId: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    const token = jwt.sign({ userId: user.id, name: user.name, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -469,8 +483,8 @@ app.post('/api/auth/login', async (req, res) => {
     if (!valid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const token = jwt.sign({ userId: user.id, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    const token = jwt.sign({ userId: user.id, name: user.name, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
   }

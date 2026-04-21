@@ -22,7 +22,7 @@ import { ToastProvider, useToast } from './components/Toast';
 import { BackToTop } from './components/BackToTop';
 import { MobileNavBar } from './components/MobileNavBar';
 
-interface AuthUser { id: number; name: string; email: string; }
+interface AuthUser { id: number; name: string; email: string; role: string; }
 
 // ─── Page Transition Wrapper ──────────────────────────────────────────────
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -40,8 +40,8 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
 
 // ─── Admin Protection Wrapper ───────────────────────────────────────────────
 function AdminRoute({ currentUser, children }: { currentUser: AuthUser | null, children: React.ReactNode }) {
-  // Hardcoded early-stage security: only this specific email can access Admin panel.
-  if (!currentUser || currentUser.email !== 'prajwal4545@gmail.com') {
+  // Role-based security: only users with role='admin' can access the Admin panel.
+  if (!currentUser || currentUser.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
   return <PageWrapper>{children}</PageWrapper>;

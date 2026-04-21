@@ -79,7 +79,7 @@ export function ProfilePage({ currentUser, onLogout }: ProfilePageProps) {
               <h2 className="text-xl font-medium text-gray-900 mb-1">{currentUser.name}</h2>
               <p className="text-gray-500 mb-6 text-sm">{currentUser.email}</p>
               
-              {currentUser.email === 'prajwal4545@gmail.com' && (
+              {currentUser.role === 'admin' && (
                 <button
                   onClick={() => navigate('/admin')}
                   className="w-full mb-3 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white transition flex items-center justify-center gap-2 font-medium shadow-sm"

@@ -31,6 +31,12 @@ interface Order {
   orderItems: OrderItem[];
 }
 
+// Helper to get auth headers with JWT token
+const getAdminHeaders = (): HeadersInit => {
+  const token = localStorage.getItem('authToken');
+  return token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } : { 'Content-Type': 'application/json' };
+};
+
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'product' | 'manage_products' | 'coupons'>('overview');
   
@@ -67,28 +73,29 @@ export function AdminDashboard() {
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch orders for the Overview tab stats on mount
   useEffect(() => {
-    if (activeTab === 'orders') {
-      fetch('/api/orders')
+    const token = localStorage.getItem('authToken');
+    const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+    fetch('/api/orders', { headers: authHeader })
+      .then((res) => res.json())
+      .then((data) => { setOrders(data); setLoadingOrders(false); })
+      .catch(() => setLoadingOrders(false));
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+    if (activeTab === 'manage_products') {
+      setLoadingProductsList(true);
+      fetch('/api/products', { headers: authHeader })
         .then((res) => res.json())
-        .then((data) => {
-          setOrders(data);
-          setLoadingOrders(false);
-        });
-    } else if (activeTab === 'manage_products') {
-      fetch('/api/products')
-        .then((res) => res.json())
-        .then((data) => {
-          setProductsList(data);
-          setLoadingProductsList(false);
-        });
+        .then((data) => { setProductsList(data); setLoadingProductsList(false); });
     } else if (activeTab === 'coupons') {
-      fetch('/api/coupons')
+      setLoadingCoupons(true);
+      fetch('/api/coupons', { headers: authHeader })
         .then((res) => res.json())
-        .then((data) => {
-          setCoupons(data);
-          setLoadingCoupons(false);
-        });
+        .then((data) => { setCoupons(data); setLoadingCoupons(false); });
     }
   }, [activeTab]);
 
@@ -96,7 +103,7 @@ export function AdminDashboard() {
     try {
       const res = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ status }),
       });
       if (res.ok) {
@@ -111,7 +118,11 @@ export function AdminDashboard() {
     const confirm = window.confirm("Are you sure you want to delete this product? All related reviews and cart items will be cascadingly deleted.");
     if (!confirm) return;
     try {
-      const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (res.ok) {
         setProductsList(productsList.filter(p => p.id !== productId));
       }
@@ -185,8 +196,10 @@ export function AdminDashboard() {
         const formData = new FormData();
         formData.append('image', imageFile);
 
+        const token = localStorage.getItem('authToken');
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
           body: formData,
         });
 
@@ -211,7 +224,12 @@ export function AdminDashboard() {
       for (const file of additionalImages) {
         const fileFormData = new FormData();
         fileFormData.append('image', file);
-        const upRes = await fetch('/api/upload', { method: 'POST', body: fileFormData });
+        const token = localStorage.getItem('authToken');
+        const upRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          body: fileFormData
+        });
         if (upRes.ok) {
           const { url } = await upRes.json();
           newAdditionalUrls.push(url);
@@ -230,7 +248,7 @@ export function AdminDashboard() {
 
       const productRes = await fetch(endpoint, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify(payload),
       });
 
@@ -788,7 +806,7 @@ export function AdminDashboard() {
                   if (!newCouponCode || !newCouponDiscount) return;
                   const res = await fetch('/api/coupons', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAdminHeaders(),
                     body: JSON.stringify({ code: newCouponCode, discountPct: newCouponDiscount })
                   });
                   if (res.ok) {
@@ -821,7 +839,11 @@ export function AdminDashboard() {
                     <button
                       onClick={async () => {
                         if (!window.confirm('Revoke this code?')) return;
-                        const res = await fetch(`/api/coupons/${coupon.id}`, { method: 'DELETE' });
+                        const token = localStorage.getItem('authToken');
+                        const res = await fetch(`/api/coupons/${coupon.id}`, {
+                          method: 'DELETE',
+                          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
                         if (res.ok) {
                           setCoupons(coupons.filter(c => c.id !== coupon.id));
                         }
